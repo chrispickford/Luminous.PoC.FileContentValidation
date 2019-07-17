@@ -7,6 +7,6 @@ namespace Luminous.PoC.FileContentValidation.Providers
 {
     public interface IHttpRequestFileProvider
     {
-        Task<ICollection<FileData>> GetFiles(HttpRequestMessage request);
+        Task<IEnumerable<FileData>> GetFiles(HttpRequestMessage request);
     }
 }

@@ -9,7 +9,7 @@ namespace Luminous.PoC.FileContentValidation.Providers
 {
     internal class HttpRequestMultipartFileProvider : IHttpRequestFileProvider
     {
-        public Task<ICollection<FileData>> GetFiles(HttpRequestMessage request)
+        public Task<IEnumerable<FileData>> GetFiles(HttpRequestMessage request)
         {
             if (request.Content == null || !request.Content.IsMimeMultipartContent())
             {
@@ -19,20 +19,20 @@ namespace Luminous.PoC.FileContentValidation.Providers
             return GetFilesInternal(request);
         }
 
-        private async Task<ICollection<FileData>> GetFilesInternal(HttpRequestMessage request)
+        private async Task<IEnumerable<FileData>> GetFilesInternal(HttpRequestMessage request)
         {
             var multipartMemoryStreamProvider = new MultipartMemoryStreamProvider();
 
             await request.Content.ReadAsMultipartAsync(multipartMemoryStreamProvider);
 
-            IList<FileData> files = multipartMemoryStreamProvider.Contents.Select(httpContent => new FileData
-            {
-                FileName = httpContent.Headers.ContentDisposition.FileName.Trim('\"'),
-                MimeType = httpContent.Headers.ContentType.ToString(),
-                SizeBytes = httpContent.Headers.ContentLength
-            }).ToList();
+            var fileTasks = multipartMemoryStreamProvider.Contents.Select(async (httpContent) => new FileData(
+                httpContent.Headers.ContentDisposition.FileName.Trim('\"'),
+                await httpContent.ReadAsStreamAsync(),
+                httpContent.Headers.ContentType.ToString(),
+                httpContent.Headers.ContentLength)
+            ).ToList();
 
-            return files;
+            return await Task.WhenAll(fileTasks);
         }
     }
 }
